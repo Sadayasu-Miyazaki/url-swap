@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>URL Swap – P2P URL交換ツール</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO用（任意） -->
+  <meta name="description" content="サーバーなしでURLだけを交換できるP2Pツール。互いにURLを送る前はドメインだけ表示し、プライバシーを守りながらリンク共有できます。">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://url-swap.vercel.app/">
+
+  <style>
+    :root {
+      --bg1: #020617;
+      --bg2: #020617;
+      --bg3: #020617;
+      --panel: #020617;
+      --card: #020617;
+      --border: #1f2937;
+      --border-soft: #1e293b;
+      --accent: #4f46e5;
+      --accent-soft: rgba(79, 70, 229, 0.18);
+      --accent-strong: #6366f1;
+      --text-main: #e5e7eb;
+      --text-sub: #9ca3af;
+      --danger: #f97373;
+      --success: #22c55e;
+      --warn: #fbbf24;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top, #111827 0, #020617 45%, #000000 100%);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 960px;
+      padding: 32px 16px 32px;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    .shell {
+      width: 100%;
+      background: radial-gradient(circle at top, #111827 0, #020617 55%, #020617 100%);
+      border-radius: 20px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow:
+        0 24px 60px rgba(15, 23, 42, 0.9),
+        0 0 0 1px rgba(148, 163, 184, 0.25) inset;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 20px 16px;
+      backdrop-filter: blur(14px);
+    }
+
+    header {
+      border-bottom: 1px solid rgba(31, 41, 55, 0.8);
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #e5e7eb;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: rgba(15, 23, 42, 0.85);
+      color: var(--text-sub);
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #4b5563;
+    }
+
+    .status-chip.ok .status-dot {
+      background: var(--success);
+    }
+
+    .status-chip.warn .status-dot {
+      background: var(--warn);
+    }
+
+    .status-chip.err .status-dot {
+      background: var(--danger);
+    }
+
+    .status-text {
+      color: var(--text-main);
+      font-weight: 500;
+    }
+
+    .status-sub {
+      color: var(--text-sub);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.1fr);
+      gap: 14px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .left-col,
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .panel {
+      background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.8), #020617);
+      border-radius: 14px;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      padding: 12px 12px 10px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .panel-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-tag {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-sub);
+    }
+
+    .panel-sub {
+      font-size: 0.78rem;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+    }
+
+    .role-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 0.86rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.08s ease, box-shadow 0.1s ease,
+        background-color 0.1s ease, opacity 0.1s ease;
+      touch-action: manipulation;
+      white-space: nowrap;
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color: #f9fafb;
+      box-shadow: 0 16px 30px rgba(79, 70, 229, 0.55);
+    }
+
+    button.primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 40px rgba(79, 70, 229, 0.8);
+    }
+
+    button.secondary {
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-main);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+    }
+
+    button.secondary:hover {
+      background: rgba(15, 23, 42, 0.95);
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.9);
+    }
+
+    button.ghost {
+      background: transparent;
+      color: var(--text-sub);
+      border-radius: 999px;
+      padding: 4px 8px;
+    }
+
+    button.ghost:hover {
+      background: rgba(31, 41, 55, 0.8);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .field-label {
+      font-size: 0.78rem;
+      color: var(--text-sub);
+      margin: 6px 0 4px;
+    }
+
+    .field-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .field-main {
+      flex: 1;
+    }
+
+    textarea,
+    input[type="text"] {
+      width: 100%;
+      padding: 7px 9px;
+      border-radius: 9px;
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      font-size: 0.8rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-main);
+      resize: vertical;
+      min-height: 70px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease,
+        background-color 0.15s ease;
+    }
+
+    input[type="text"] {
+      min-height: auto;
+      padding-top: 7px;
+      padding-bottom: 7px;
+    }
+
+    textarea:focus,
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent-strong);
+      box-shadow: 0 0 0 1px var(--accent-soft);
+      background: rgba(15, 23, 42, 0.98);
+    }
+
+    .status-detail {
+      font-size: 0.78rem;
+      color: var(--text-sub);
+      margin-top: 4px;
+      min-height: 14px;
+    }
+
+    .url-display {
+      padding: 8px 9px;
+      border-radius: 9px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px dashed rgba(55, 65, 81, 0.9);
+      font-size: 0.8rem;
+      word-break: break-all;
+    }
+
+    .url-main {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+      margin-bottom: 3px;
+    }
+
+    .url-full {
+      font-size: 0.78rem;
+      color: var(--text-sub);
+    }
+
+    .url-full a {
+      color: var(--accent-strong);
+      text-decoration: none;
+    }
+
+    .url-full a:hover {
+      text-decoration: underline;
+    }
+
+    .my-url-info {
+      margin-top: 4px;
+      font-size: 0.75rem;
+      color: var(--text-sub);
+    }
+
+    .my-url-info.sent {
+      color: var(--accent-strong);
+    }
+
+    .my-url-info.error {
+      color: var(--danger);
+    }
+
+    footer {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(31, 41, 55, 0.9);
+      font-size: 0.75rem;
+      color: #6b7280;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .foot-left {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 0.74rem;
+    }
+
+    .dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 999px;
+      background: #4b5563;
+    }
+
+    .foot-right {
+      font-size: 0.74rem;
+      color: #9ca3af;
+    }
+
+    @media (max-width: 800px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 18px 10px 22px;
+      }
+
+      .shell {
+        padding: 16px 12px 12px;
+        border-radius: 16px;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      h1 {
+        font-size: 1.2rem;
+      }
+
+      .role-buttons {
+        flex-direction: row;
+        width: 100%;
+      }
+
+      .role-buttons button {
+        flex: 1;
+        justify-content: center;
+      }
+
+      button {
+        padding: 9px 10px;
+        font-size: 0.8rem;
+      }
+
+      .panel {
+        padding: 10px 10px 8px;
+      }
+
+      .field-row {
+        flex-direction: column;
+      }
+
+      textarea {
+        min-height: 66px;
+      }
+
+      footer {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="shell">
+      <header>
+        <div class="title-wrap">
+          <h1>
+            <span class="badge">P2P</span>
+            URL Swap
+          </h1>
+          <div class="subtitle">
+            サーバーなし・履歴なし。ブラウザ同士を直接つないでURLを一回だけ交換します。
+          </div>
+        </div>
+        <div class="status-pill status-chip warn">
+          <span class="status-dot"></span>
+          <span id="connectionStatus" class="status-text">未接続</span>
+        </div>
+      </header>
+
+      <div class="layout">
+        <!-- 左：ロール＆接続まわり -->
+        <div class="left-col">
+          <!-- 役割選択 -->
+          <section class="panel" id="roleSection">
+            <div class="panel-header">
+              <div class="panel-title">
+                ① ロールを選ぶ
+              </div>
+              <div class="panel-tag">ROLE</div>
+            </div>
+            <div class="panel-sub">
+              2人で同じページを開き、どちらかが<strong>ホスト</strong>、もう一方が<strong>ゲスト</strong>を選びます。
+            </div>
+            <div class="role-buttons">
+              <button id="chooseHostBtn" class="primary">ホストとして開始</button>
+              <button id="chooseGuestBtn" class="secondary">ゲストとして参加</button>
+            </div>
+          </section>
+
+          <!-- ホスト用 -->
+          <section class="panel" id="hostSection" style="display:none;">
+            <div class="panel-header">
+              <div class="panel-title">
+                ホスト
+              </div>
+              <div class="panel-tag">HOST</div>
+            </div>
+            <div class="panel-sub">
+              接続コードを作成してゲストに送り、ゲストから返ってきたコードを貼り付けます。
+            </div>
+
+            <button id="hostStartBtn" class="primary" style="margin-bottom:8px;">
+              接続コード生成
+            </button>
+
+            <div class="field-label">あなたの接続コード（ゲストへ送る）</div>
+            <div class="field-row">
+              <div class="field-main">
+                <textarea id="hostLocalCode" readonly></textarea>
+              </div>
+              <button id="copyHostLocalBtn" class="ghost" type="button">コピー</button>
+            </div>
+
+            <div class="field-label">ゲストから届いたコードを貼る</div>
+            <div class="field-row">
+              <div class="field-main">
+                <textarea id="hostRemoteCode"></textarea>
+              </div>
+            </div>
+            <button id="hostReadGuestCodeBtn" class="secondary" style="margin-top:6px;">
+              ゲストのコードを適用
+            </button>
+          </section>
+
+          <!-- ゲスト用 -->
+          <section class="panel" id="guestSection" style="display:none;">
+            <div class="panel-header">
+              <div class="panel-title">
+                ゲスト
+              </div>
+              <div class="panel-tag">GUEST</div>
+            </div>
+            <div class="panel-sub">
+              ホストからもらった接続コードを貼り付け、返すコードを送り返します。
+            </div>
+
+            <div class="field-label">ホストから受け取った接続コード</div>
+            <div class="field-row">
+              <div class="field-main">
+                <textarea id="guestRemoteCode"></textarea>
+              </div>
+              <button id="copyGuestRemoteBtn" class="ghost" type="button">コピー</button>
+            </div>
+            <button id="guestReadHostCodeBtn" class="secondary" style="margin-top:6px;">
+              コードを読み込んで接続準備
+            </button>
+
+            <div class="field-label" style="margin-top:8px;">あなたの接続コード（ホストへ送る）</div>
+            <div class="field-row">
+              <div class="field-main">
+                <textarea id="guestLocalCode" readonly></textarea>
+              </div>
+              <button id="copyGuestLocalBtn" class="ghost" type="button">コピー</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div class="panel-title">接続ログ</div>
+              <div class="panel-tag">STATUS</div>
+            </div>
+            <div id="extraInfo" class="status-detail">
+              ロールを選んで接続コードのやり取りを開始してください。
+            </div>
+          </section>
+        </div>
+
+        <!-- 右：URL交換 -->
+        <div class="right-col">
+          <section class="panel">
+            <div class="panel-header">
+              <div class="panel-title">URLを交換</div>
+              <div class="panel-tag">URL SWAP</div>
+            </div>
+            <div class="panel-sub">
+              接続後、各自1回だけURLを送信します。片側だけ送信した状態では、相手には
+              <code>https://example.com/???</code> のようにドメインだけが表示されます。
+            </div>
+
+            <div class="field-label">あなたのURL（PayPay / SNSなど）</div>
+            <input
+              type="text"
+              id="myUrl"
+              placeholder="例）https://paypay.ne.jp/xxxx や https://twitter.com/xxxxx"
+            />
+
+            <button id="sendUrlBtn" class="primary" style="margin-top:8px;" disabled>
+              URLを確定して送信
+            </button>
+            <div id="myUrlInfo" class="my-url-info"></div>
+
+            <div class="field-label" style="margin-top:10px;">相手のURL</div>
+            <div id="peerUrlDisplay" class="url-display">
+              まだ相手のURLは表示されていません。
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <footer>
+        <div class="foot-left">
+          <span class="dot"></span>
+          <span>P2P / WebRTC / No Server Log</span>
+        </div>
+        <div class="foot-right">
+          © 2025 r_shon All rights reserved.
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    const rtcConfig = {
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    };
+
+    let pc = null;
+    let dataChannel = null;
+    let isHost = false;
+    let role = null;
+
+    let hasSentMyUrl = false;
+    let hasReceivedPeerUrl = false;
+    let storedMyUrl = "";
+    let storedPeerUrl = "";
+
+    const connectionStatusEl = document.getElementById("connectionStatus");
+    const extraInfoEl = document.getElementById("extraInfo");
+
+    const roleSection = document.getElementById("roleSection");
+    const hostSection = document.getElementById("hostSection");
+    const guestSection = document.getElementById("guestSection");
+
+    const chooseHostBtn = document.getElementById("chooseHostBtn");
+    const chooseGuestBtn = document.getElementById("chooseGuestBtn");
+
+    const hostStartBtn = document.getElementById("hostStartBtn");
+    const hostLocalCodeEl = document.getElementById("hostLocalCode");
+    const hostRemoteCodeEl = document.getElementById("hostRemoteCode");
+    const hostReadGuestCodeBtn = document.getElementById("hostReadGuestCodeBtn");
+    const copyHostLocalBtn = document.getElementById("copyHostLocalBtn");
+
+    const guestRemoteCodeEl = document.getElementById("guestRemoteCode");
+    const guestLocalCodeEl = document.getElementById("guestLocalCode");
+    const guestReadHostCodeBtn = document.getElementById("guestReadHostCodeBtn");
+    const copyGuestRemoteBtn = document.getElementById("copyGuestRemoteBtn");
+    const copyGuestLocalBtn = document.getElementById("copyGuestLocalBtn");
+
+    const sendUrlBtn = document.getElementById("sendUrlBtn");
+    const myUrlInput = document.getElementById("myUrl");
+    const peerUrlDisplay = document.getElementById("peerUrlDisplay");
+    const myUrlInfo = document.getElementById("myUrlInfo");
+
+    function setStatus(text, type = "info") {
+      connectionStatusEl.textContent = text;
+      connectionStatusEl.parentElement.classList.remove("ok", "warn", "err");
+      if (type === "ok") connectionStatusEl.parentElement.classList.add("ok");
+      else if (type === "warn") connectionStatusEl.parentElement.classList.add("warn");
+      else if (type === "err") connectionStatusEl.parentElement.classList.add("err");
+    }
+
+    function logInfo(text) {
+      extraInfoEl.textContent = text;
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, function (c) {
+        return {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        }[c];
+      });
+    }
+
+    function extractFirstUrl(str) {
+      const m = String(str || "").match(/https?:\/\/[^\s]+/);
+      return m ? m[0] : "";
+    }
+
+    function summarizeSite(raw) {
+      const candidate = extractFirstUrl(raw) || String(raw || "");
+      try {
+        const u = new URL(candidate);
+        return u.protocol + "//" + u.host + "/???";
+      } catch {
+        return "（不明なURL形式）";
+      }
+    }
+
+    function showPeerUrlFull() {
+      const original = storedPeerUrl || "";
+      const urlOnly = extractFirstUrl(original) || original;
+
+      const shortSite = summarizeSite(original);
+      const shortEsc = escapeHtml(shortSite);
+      const urlEsc = escapeHtml(urlOnly);
+
+      let html = "";
+      html +=
+        '<div class="url-main"><strong>サイト：</strong>' + shortEsc + "</div>";
+
+      if (urlOnly) {
+        html +=
+          '<div class="url-full">フルURL：<a href="' +
+          urlEsc +
+          '" target="_blank" rel="noopener noreferrer">' +
+          urlEsc +
+          "</a></div>";
+      } else {
+        html += '<div class="url-full">フルURL： (URLが見つかりませんでした)</div>';
+      }
+
+      peerUrlDisplay.innerHTML = html;
+    }
+
+    function showPeerUrlSummaryOnly() {
+      const original = storedPeerUrl || "";
+      const shortSite = summarizeSite(original);
+      const shortEsc = escapeHtml(shortSite);
+
+      let html = "";
+      html +=
+        '<div class="url-main"><strong>サイト：</strong>' + shortEsc + "</div>";
+      html +=
+        '<div class="url-full">フルURLは、あなたがURLを送信すると表示されます。</div>';
+
+      peerUrlDisplay.innerHTML = html;
+    }
+
+    function showPeerUrlIfBothReady() {
+      if (!hasSentMyUrl || !hasReceivedPeerUrl) return;
+      showPeerUrlFull();
+    }
+
+    function createPeerConnection() {
+      if (pc) {
+        pc.close();
+        pc = null;
+      }
+
+      pc = new RTCPeerConnection(rtcConfig);
+
+      pc.onicecandidate = (event) => {
+        if (!event.candidate && pc.localDescription) {
+          const json = JSON.stringify(pc.localDescription);
+          const encoded = btoa(json);
+          if (role === "host") {
+            hostLocalCodeEl.value = encoded;
+          } else if (role === "guest") {
+            guestLocalCodeEl.value = encoded;
+          }
+          logInfo("接続コードが作成されました。この文字列を相手に送ってください。");
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        const state = pc.iceConnectionState;
+        if (state === "connected" || state === "completed") {
+          setStatus("接続完了", "ok");
+          sendUrlBtn.disabled = false;
+          logInfo("接続完了。お互いURLを入力して「URLを確定して送信」を押してください。");
+        } else if (state === "disconnected" || state === "failed") {
+          setStatus("切断 / 失敗", "err");
+          sendUrlBtn.disabled = true;
+          logInfo("接続が切断されました。ページをリロードしてやり直してください。");
+        } else if (state === "checking" || state === "connecting") {
+          setStatus("接続中…", "warn");
+        } else {
+          setStatus("状態：" + state, "warn");
+        }
+      };
+
+      pc.ondatachannel = (event) => {
+        if (!isHost) {
+          setupDataChannel(event.channel);
+        }
+      };
+    }
+
+    function setupDataChannel(channel) {
+      dataChannel = channel;
+
+      channel.onopen = () => {
+        setStatus("接続完了", "ok");
+        sendUrlBtn.disabled = false;
+        logInfo("接続完了。URLを一度だけ送信できます。");
+      };
+
+      channel.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === "urlReady") {
+            storedPeerUrl = msg.value || "";
+            hasReceivedPeerUrl = true;
+
+            if (hasSentMyUrl) {
+              showPeerUrlIfBothReady();
+            } else {
+              showPeerUrlSummaryOnly();
+            }
+          }
+        } catch (e) {
+          console.error("受信メッセージ解析エラー:", e);
+        }
+      };
+
+      channel.onerror = (err) => {
+        console.error("DataChannel error:", err);
+        setStatus("データチャネルでエラーが発生しました", "err");
+      };
+
+      channel.onclose = () => {
+        setStatus("切断されました", "warn");
+        sendUrlBtn.disabled = true;
+      };
+    }
+
+    async function copyFrom(el) {
+      const text = el.value || "";
+      if (!text) {
+        alert("コピーする文字列がありません。");
+        return;
+      }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          el.focus();
+          el.select();
+          document.execCommand("copy");
+        }
+        alert("コピーしました。");
+      } catch (e) {
+        console.error(e);
+        alert("コピーに失敗しました。手動で選択してコピーしてください。");
+      }
+    }
+
+    copyHostLocalBtn.addEventListener("click", () => copyFrom(hostLocalCodeEl));
+    copyGuestRemoteBtn.addEventListener("click", () => copyFrom(guestRemoteCodeEl));
+    copyGuestLocalBtn.addEventListener("click", () => copyFrom(guestLocalCodeEl));
+
+    chooseHostBtn.addEventListener("click", () => {
+      role = "host";
+      isHost = true;
+      roleSection.style.display = "none";
+      hostSection.style.display = "block";
+      guestSection.style.display = "none";
+      logInfo("ホストを選びました。「接続コード生成」を押してコードを作成してください。");
+    });
+
+    chooseGuestBtn.addEventListener("click", () => {
+      role = "guest";
+      isHost = false;
+      roleSection.style.display = "none";
+      hostSection.style.display = "none";
+      guestSection.style.display = "block";
+      logInfo("ゲストを選びました。ホストから送られてきたコードを貼り付けてください。");
+    });
+
+    hostStartBtn.addEventListener("click", async () => {
+      try {
+        if (role !== "host") return;
+        setStatus("ホスト準備中…", "warn");
+        logInfo("少し待つと接続コードが生成されます。");
+
+        createPeerConnection();
+        const channel = pc.createDataChannel("urlswap");
+        setupDataChannel(channel);
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+      } catch (e) {
+        console.error(e);
+        setStatus("ホスト初期化エラー", "err");
+        logInfo(String(e));
+      }
+    });
+
+    guestReadHostCodeBtn.addEventListener("click", async () => {
+      try {
+        if (role !== "guest") return;
+
+        const encoded = guestRemoteCodeEl.value.trim();
+        if (!encoded) {
+          alert("ホストから受け取ったコードを貼り付けてください。");
+          return;
+        }
+
+        if (pc && pc.signalingState !== "stable") {
+          logInfo("すでにホストのコードを適用済みです。再度読み込む必要はありません。");
+          return;
+        }
+
+        setStatus("ホスト情報を適用中…", "warn");
+        logInfo("接続コードを解析しています…");
+
+        createPeerConnection();
+
+        const json = atob(encoded);
+        const desc = JSON.parse(json);
+        await pc.setRemoteDescription(new RTCSessionDescription(desc));
+
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        logInfo("数秒後にあなたの接続コードが表示されます。それをホストに送ってください。");
+      } catch (e) {
+        console.error(e);
+        setStatus("ホストコード読み込みエラー", "err");
+        logInfo(String(e));
+      }
+    });
+
+    hostReadGuestCodeBtn.addEventListener("click", async () => {
+      try {
+        if (role !== "host") return;
+
+        const encoded = hostRemoteCodeEl.value.trim();
+        if (!encoded) {
+          alert("ゲストから届いたコードを貼り付けてください。");
+          return;
+        }
+        if (!pc) {
+          alert("先に「接続コード生成」を押してください。");
+          return;
+        }
+
+        if (pc.signalingState === "stable") {
+          setStatus("接続完了", "ok");
+          logInfo("すでにゲストのコードを適用済みです。");
+          return;
+        }
+
+        setStatus("ゲスト情報を適用中…", "warn");
+        logInfo("接続を確立中です。数秒お待ちください。");
+
+        const json = atob(encoded);
+        const desc = JSON.parse(json);
+        await pc.setRemoteDescription(new RTCSessionDescription(desc));
+      } catch (e) {
+        console.error(e);
+        if (e && e.name === "InvalidStateError") {
+          setStatus("接続完了", "ok");
+          logInfo("すでに接続済みです。ゲストのコードを再度読み込む必要はありません。");
+        } else {
+          setStatus("ゲストコード読み込みエラー", "err");
+          logInfo(String(e));
+        }
+      }
+    });
+
+    sendUrlBtn.addEventListener("click", () => {
+      if (!dataChannel || dataChannel.readyState !== "open") {
+        alert("まだ接続が完了していません。");
+        return;
+      }
+
+      if (hasSentMyUrl) {
+        alert("この接続ではすでにURLを送信済みです。");
+        return;
+      }
+
+      const url = myUrlInput.value.trim();
+
+      if (!url) {
+        const yes = confirm("URLが空です。このまま空のURLを送りますか？");
+        if (!yes) return;
+      }
+
+      storedMyUrl = url;
+      hasSentMyUrl = true;
+
+      const msg = JSON.stringify({ type: "urlReady", value: url });
+      dataChannel.send(msg);
+
+      myUrlInput.disabled = true;
+      sendUrlBtn.disabled = true;
+      myUrlInfo.textContent =
+        "あなたのURLを送信しました。相手のURLは上の欄に表示されます。";
+      myUrlInfo.classList.remove("error");
+      myUrlInfo.classList.add("sent");
+
+      showPeerUrlIfBothReady();
+    });
+  </script>
+</body>
+</html>
