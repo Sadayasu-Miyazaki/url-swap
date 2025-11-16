@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>P2P Chat Modern</title>
+<title>P2P Chat Modern (Digit Code)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 /* ─────────────────────────────
@@ -304,19 +304,19 @@ input::placeholder {
         <h2>ホスト</h2>
     </div>
     <div class="status-pill">あなたがルームを立てます</div>
-    <div id="status">「接続コード生成」を押して、出てきたコードを相手に送ってください。</div>
+    <div id="status">「接続コード生成」を押して、出てきた数字のコードを相手に送ってください。</div>
 
     <div class="label">1. 接続コード（Offer）を作成</div>
     <button id="createOffer">接続コード生成</button>
-    <textarea id="offer" rows="4" placeholder="生成された接続コード（Offer）がここに出ます"></textarea>
+    <textarea id="offer" rows="4" placeholder="生成された数字コード（Offer）がここに出ます"></textarea>
 
     <div style="display:flex; justify-content:space-between;">
         <button class="small-btn" onclick="copyText('offer')">Offerをコピー</button>
         <button class="small-btn" onclick="pasteText('hostAnswer')">Answerをペースト</button>
     </div>
 
-    <div class="label">2. ゲストから届いた Answer を貼る</div>
-    <textarea id="hostAnswer" rows="4" placeholder="ゲストから送られてきたAnswerをここに貼る"></textarea>
+    <div class="label">2. ゲストから届いた数字コード Answer を貼る</div>
+    <textarea id="hostAnswer" rows="4" placeholder="ゲストから送られてきた数字のAnswerコードをここに貼る"></textarea>
     <button id="applyAnswer">Answerを適用して接続開始</button>
 </div>
 
@@ -327,10 +327,10 @@ input::placeholder {
         <h2>ゲスト</h2>
     </div>
     <div class="status-pill">ホストからコードをもらって接続します</div>
-    <div id="status2">ホストから送られたOfferを貼ってください。</div>
+    <div id="status2">ホストから送られた数字のOfferコードを貼ってください。</div>
 
-    <div class="label">1. ホストの Offer を貼る</div>
-    <textarea id="answer" rows="4" placeholder="ホストから送られてきたOfferをここに貼る"></textarea>
+    <div class="label">1. ホストの Offer コードを貼る</div>
+    <textarea id="answer" rows="4" placeholder="ホストから送られてきた数字のOfferコードをここに貼る"></textarea>
 
     <div style="display:flex; justify-content:space-between;">
         <button class="small-btn" onclick="pasteText('answer')">Offerをペースト</button>
@@ -339,7 +339,7 @@ input::placeholder {
     <div class="label">2. Answer を生成して、ホストに送り返す</div>
     <button id="setAnswer">Answer生成</button>
 
-    <textarea id="guestAnswerOut" rows="4" placeholder="生成されたAnswerがここに表示されます（これをホストに送る）"></textarea>
+    <textarea id="guestAnswerOut" rows="4" placeholder="生成された数字のAnswerコードがここに表示されます（これをホストに送る）"></textarea>
 
     <div style="display:flex; justify-content:space-between;">
         <button class="small-btn" onclick="copyText('guestAnswerOut')">Answerをコピー</button>
@@ -409,6 +409,35 @@ const sendBtn   = document.getElementById("send");
 
 const fileInput   = document.getElementById("fileInput");
 const sendFileBtn = document.getElementById("sendFile");
+
+/* ─────────────── 文字列⇔数字コード変換 ─────────────── */
+// 文字列 → 数字だけの文字列（3桁ごと：000〜255）
+function encodeDigits(str) {
+    const bytes = new TextEncoder().encode(str);
+    let out = "";
+    for (const b of bytes) {
+        out += (b + 1000).toString().slice(1); // 1000〜1255 → 下3桁だけ
+    }
+    return out;
+}
+
+// 数字だけの文字列 → 文字列
+function decodeDigits(digits) {
+    const len = digits.length;
+    if (len % 3 !== 0) {
+        throw new Error("invalid digit code length");
+    }
+    const arr = [];
+    for (let i = 0; i < len; i += 3) {
+        const n = parseInt(digits.slice(i, i + 3), 10);
+        if (Number.isNaN(n) || n < 0 || n > 255) {
+            throw new Error("invalid byte in digit code");
+        }
+        arr.push(n);
+    }
+    const bytes = new Uint8Array(arr);
+    return new TextDecoder().decode(bytes);
+}
 
 /* ─────────────── クリップボード ─────────────── */
 function copyText(id) {
@@ -504,8 +533,8 @@ function resetApp() {
     msgInput.value = "";
     fileInput.value = "";
 
-    status1.textContent = "「接続コード生成」を押して、出てきたコードを相手に送ってください。";
-    status2.textContent = "ホストから送られたOfferを貼ってください。";
+    status1.textContent = "「接続コード生成」を押して、出てきた数字のコードを相手に送ってください。";
+    status2.textContent = "ホストから送られた数字のOfferコードを貼ってください。";
     status3.textContent = "接続中…";
 }
 
@@ -535,36 +564,42 @@ createOfferBtn.onclick = async () => {
 
     pc.onicecandidate = e => {
         if (!e.candidate) {
-            offerTextarea.value = JSON.stringify(pc.localDescription);
-            status1.textContent = "Offerをゲストに送ってください。";
+            // SDP(JSON) → 数字コードに変換
+            const json = JSON.stringify(pc.localDescription);
+            offerTextarea.value = encodeDigits(json);
+            status1.textContent = "数字のOfferコードをゲストに送ってください。";
         }
     };
 };
 
 /* ─────────────── ホスト：Answer受信 ─────────────── */
 applyAnswerBtn.onclick = async () => {
-    const text = hostAnswerTextarea.value.trim();
-    if (!text) { alert("Answerが空です"); return; }
+    const encoded = hostAnswerTextarea.value.trim();
+    if (!encoded) { alert("Answerコードが空です"); return; }
 
     try {
-        const ans = JSON.parse(text);
+        const json = decodeDigits(encoded);
+        const ans = JSON.parse(json);
         await pc.setRemoteDescription(ans);
         status1.textContent = "Answerを適用しました。接続を待機中…";
     } catch (e) {
-        alert("Answerの形式が不正です");
+        console.error(e);
+        alert("Answerコードの形式が不正です");
     }
 };
 
 /* ─────────────── ゲスト：Offer→Answer生成 ─────────────── */
 setAnswerBtn.onclick = async () => {
-    const text = guestOfferTextarea.value.trim();
-    if (!text) { alert("Offerが空です"); return; }
+    const encoded = guestOfferTextarea.value.trim();
+    if (!encoded) { alert("Offerコードが空です"); return; }
 
     try {
-        const remoteOffer = JSON.parse(text);
+        const json = decodeDigits(encoded);
+        const remoteOffer = JSON.parse(json);
         await pc.setRemoteDescription(remoteOffer);
     } catch (e) {
-        alert("Offerの形式が不正です");
+        console.error(e);
+        alert("Offerコードの形式が不正です");
         return;
     }
 
@@ -575,8 +610,10 @@ setAnswerBtn.onclick = async () => {
 
     pc.onicecandidate = e => {
         if (!e.candidate) {
-            guestAnswerOutTextarea.value = JSON.stringify(pc.localDescription);
-            status2.textContent = "生成されたAnswerをホストに渡してください。";
+            // SDP(JSON) → 数字コード
+            const json = JSON.stringify(pc.localDescription);
+            guestAnswerOutTextarea.value = encodeDigits(json);
+            status2.textContent = "生成された数字のAnswerコードをホストに渡してください。";
         }
     };
 };
