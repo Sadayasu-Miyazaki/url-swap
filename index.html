@@ -1,999 +1,803 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>URL Swap – P2P URL交換ツール</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<title>P2P Chat Modern</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+/* ─────────────────────────────
+   基本デザイン：モダン＋ちょい遊び心
+────────────────────────────── */
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at 10% 20%, #f8cdda 0, #1d2b64 60%, #141e30 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 12px 10px 20px;
+    box-sizing: border-box;
+}
 
-  <!-- SEO用（任意） -->
-  <meta name="description" content="サーバーなしでURLだけを交換できるP2Pツール。互いにURLを送る前はドメインだけ表示し、プライバシーを守りながらリンク共有できます。">
-  <meta name="robots" content="index,follow">
-  <link rel="canonical" href="https://url-swap.vercel.app/">
+/* カード共通 */
+.card {
+    width: 100%;
+    max-width: 460px;
+    background: rgba(255,255,255,0.10);
+    border-radius: 22px;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.18);
+    padding: 20px 18px 18px;
+    animation: fadeIn 0.45s ease;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    margin: 10px auto;
+}
 
-  <style>
-    :root {
-      --bg1: #020617;
-      --bg2: #020617;
-      --bg3: #020617;
-      --panel: #020617;
-      --card: #020617;
-      --border: #1f2937;
-      --border-soft: #1e293b;
-      --accent: #4f46e5;
-      --accent-soft: rgba(79, 70, 229, 0.18);
-      --accent-strong: #6366f1;
-      --text-main: #e5e7eb;
-      --text-sub: #9ca3af;
-      --danger: #f97373;
-      --success: #22c55e;
-      --warn: #fbbf24;
-    }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
 
-    * {
-      box-sizing: border-box;
-    }
+/* タイトル部分 */
+.title-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.title-accent {
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    background: conic-gradient(from 200deg, #ff9a9e, #fad0c4, #fbc2eb, #a6c1ee, #ff9a9e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+}
+h2 {
+    margin: 0;
+    text-align: center;
+    font-weight: 600;
+    color: #f9fafb;
+    letter-spacing: 0.03em;
+}
 
+/* ステータスラベル */
+.status-pill {
+    align-self: center;
+    margin: 6px 0 10px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    color: #e5ecff;
+    background: rgba(15,118,255,0.16);
+    border: 1px solid rgba(144,202,249,0.4);
+}
+
+/* ボタン */
+button {
+    width: 100%;
+    padding: 11px;
+    margin-top: 10px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(135deg, #4f46e5, #22d3ee);
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.45);
+}
+button:hover {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+}
+button:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+/* サブボタン */
+.small-btn {
+    margin-top: 6px;
+    padding: 8px;
+    width: 49%;
+    border-radius: 12px;
+    font-size: 12px;
+    background: rgba(15,23,42,0.75);
+    box-shadow: none;
+}
+.small-btn:hover {
+    background: rgba(15,23,42,0.9);
+    box-shadow: none;
+}
+
+/* 入力フォーム */
+textarea, input {
+    width: 100%;
+    padding: 9px 10px;
+    margin-top: 6px;
+    border-radius: 14px;
+    border: 1px solid rgba(148,163,184,0.8);
+    background: rgba(15,23,42,0.65);
+    color: #e5e7eb;
+    outline: none;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+textarea::placeholder,
+input::placeholder {
+    color: rgba(148,163,184,0.9);
+}
+
+/* ラベルテキスト */
+.label {
+    font-size: 13px;
+    color: #e5e7eb;
+    margin-top: 6px;
+}
+
+/* ステータス文字 */
+#status, #status2, #status3 {
+    text-align: center;
+    color: #e5ecff;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+/* チャット画面専用調整 */
+.chat-card {
+    display: flex;
+    flex-direction: column;
+}
+
+/* チャット欄 */
+#chat {
+    flex: 1 1 auto;
+    background: linear-gradient(135deg, rgba(15,23,42,0.7), rgba(30,64,175,0.7));
+    border-radius: 16px;
+    padding: 10px;
+    overflow-y: auto;
+    margin: 10px 0;
+    border: 1px solid rgba(148,163,184,0.4);
+    box-sizing: border-box;
+    min-height: 220px;
+    max-height: 60vh;
+}
+
+/* メッセージ吹き出し */
+.msg {
+    margin: 6px 0;
+    padding: 8px 11px;
+    border-radius: 14px;
+    max-width: 80%;
+    animation: msgPop 0.2s ease;
+    font-size: 13px;
+}
+@keyframes msgPop {
+    from { opacity: 0; transform: translateY(4px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.msg.me {
+    margin-left: auto;
+    background: linear-gradient(135deg, #4f46e5, #22d3ee);
+    color: #f9fafb;
+}
+.msg.other {
+    background: rgba(15,23,42,0.85);
+    color: #e5e7eb;
+}
+.msg.system {
+    margin: 4px auto;
+    text-align: center;
+    background: transparent;
+    color: #cbd5f5;
+    font-size: 11px;
+}
+
+/* メッセージ内のメディア */
+.msg img,
+.msg video {
+    max-width: 100%;
+    border-radius: 10px;
+    margin-top: 4px;
+}
+
+/* ファイルリンク */
+.file-link {
+    color: #bfdbfe;
+    text-decoration: underline;
+    word-break: break-all;
+    font-size: 12px;
+}
+
+/* メッセージ入力行（横並び） */
+#msgRow {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+}
+#msg {
+    flex: 1;
+    margin-top: 0;
+}
+#send {
+    width: auto;
+    min-width: 78px;
+    margin-top: 0;
+    padding-inline: 12px;
+    font-size: 13px;
+}
+
+/* ファイル送信行 */
+#fileRow {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 6px;
+}
+#fileInput {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 11px;
+    background: rgba(15,23,42,0.65);
+    border-radius: 12px;
+    border: 1px solid rgba(148,163,184,0.8);
+    color: #e5e7eb;
+}
+#sendFile {
+    width: auto;
+    min-width: 84px;
+    margin-top: 0;
+    padding-inline: 10px;
+    font-size: 11px;
+}
+
+/* 共通 */
+.hidden { display: none; }
+
+/* フッター */
+.footer {
+    margin-top: 8px;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(241,245,249,0.7);
+    letter-spacing: 0.04em;
+}
+
+/* ─────────── PC時だけ中央寄せ ─────────── */
+@media (min-width: 768px) {
     body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-        "Segoe UI", sans-serif;
-      background:
-        radial-gradient(circle at top, #111827 0, #020617 45%, #000000 100%);
-      color: var(--text-main);
-      display: flex;
-      justify-content: center;
-      align-items: stretch;
-    }
-
-    .page {
-      width: 100%;
-      max-width: 960px;
-      padding: 32px 16px 32px;
-      display: flex;
-      justify-content: center;
-      align-items: stretch;
-    }
-
-    .shell {
-      width: 100%;
-      background: radial-gradient(circle at top, #111827 0, #020617 55%, #020617 100%);
-      border-radius: 20px;
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      box-shadow:
-        0 24px 60px rgba(15, 23, 42, 0.9),
-        0 0 0 1px rgba(148, 163, 184, 0.25) inset;
-      display: flex;
-      flex-direction: column;
-      padding: 20px 20px 16px;
-      backdrop-filter: blur(14px);
-    }
-
-    header {
-      border-bottom: 1px solid rgba(31, 41, 55, 0.8);
-      padding-bottom: 10px;
-      margin-bottom: 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .title-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 1.4rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .badge {
-      font-size: 0.68rem;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: #e5e7eb;
-    }
-
-    .subtitle {
-      font-size: 0.85rem;
-      color: var(--text-sub);
-    }
-
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.78rem;
-      border: 1px solid rgba(148, 163, 184, 0.45);
-      background: rgba(15, 23, 42, 0.85);
-      color: var(--text-sub);
-      white-space: nowrap;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: #4b5563;
-    }
-
-    .status-chip.ok .status-dot {
-      background: var(--success);
-    }
-
-    .status-chip.warn .status-dot {
-      background: var(--warn);
-    }
-
-    .status-chip.err .status-dot {
-      background: var(--danger);
-    }
-
-    .status-text {
-      color: var(--text-main);
-      font-weight: 500;
-    }
-
-    .status-sub {
-      color: var(--text-sub);
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.1fr);
-      gap: 14px;
-      flex: 1;
-      min-height: 0;
-    }
-
-    .left-col,
-    .right-col {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      min-height: 0;
-    }
-
-    .panel {
-      background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.8), #020617);
-      border-radius: 14px;
-      border: 1px solid rgba(55, 65, 81, 0.9);
-      padding: 12px 12px 10px;
-    }
-
-    .panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .panel-title {
-      font-size: 0.9rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .panel-tag {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-sub);
-    }
-
-    .panel-sub {
-      font-size: 0.78rem;
-      color: var(--text-sub);
-      margin-bottom: 8px;
-    }
-
-    .role-buttons {
-      display: flex;
-      gap: 8px;
-    }
-
-    button {
-      border: none;
-      border-radius: 999px;
-      padding: 8px 14px;
-      font-size: 0.86rem;
-      font-weight: 500;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: transform 0.08s ease, box-shadow 0.1s ease,
-        background-color 0.1s ease, opacity 0.1s ease;
-      touch-action: manipulation;
-      white-space: nowrap;
-    }
-
-    button.primary {
-      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-      color: #f9fafb;
-      box-shadow: 0 16px 30px rgba(79, 70, 229, 0.55);
-    }
-
-    button.primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 18px 40px rgba(79, 70, 229, 0.8);
-    }
-
-    button.secondary {
-      background: rgba(15, 23, 42, 0.9);
-      color: var(--text-main);
-      border: 1px solid rgba(55, 65, 81, 0.9);
-    }
-
-    button.secondary:hover {
-      background: rgba(15, 23, 42, 0.95);
-      transform: translateY(-1px);
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.9);
-    }
-
-    button.ghost {
-      background: transparent;
-      color: var(--text-sub);
-      border-radius: 999px;
-      padding: 4px 8px;
-    }
-
-    button.ghost:hover {
-      background: rgba(31, 41, 55, 0.8);
-    }
-
-    button:disabled {
-      opacity: 0.5;
-      cursor: default;
-      box-shadow: none;
-      transform: none;
-    }
-
-    .field-label {
-      font-size: 0.78rem;
-      color: var(--text-sub);
-      margin: 6px 0 4px;
-    }
-
-    .field-row {
-      display: flex;
-      align-items: flex-start;
-      gap: 6px;
-    }
-
-    .field-main {
-      flex: 1;
-    }
-
-    textarea,
-    input[type="text"] {
-      width: 100%;
-      padding: 7px 9px;
-      border-radius: 9px;
-      border: 1px solid rgba(31, 41, 55, 0.9);
-      font-size: 0.8rem;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-        "Liberation Mono", "Courier New", monospace;
-      background: rgba(15, 23, 42, 0.9);
-      color: var(--text-main);
-      resize: vertical;
-      min-height: 70px;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease,
-        background-color 0.15s ease;
-    }
-
-    input[type="text"] {
-      min-height: auto;
-      padding-top: 7px;
-      padding-bottom: 7px;
-    }
-
-    textarea:focus,
-    input[type="text"]:focus {
-      outline: none;
-      border-color: var(--accent-strong);
-      box-shadow: 0 0 0 1px var(--accent-soft);
-      background: rgba(15, 23, 42, 0.98);
-    }
-
-    .status-detail {
-      font-size: 0.78rem;
-      color: var(--text-sub);
-      margin-top: 4px;
-      min-height: 14px;
-    }
-
-    .url-display {
-      padding: 8px 9px;
-      border-radius: 9px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px dashed rgba(55, 65, 81, 0.9);
-      font-size: 0.8rem;
-      word-break: break-all;
-    }
-
-    .url-main {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-        "Liberation Mono", "Courier New", monospace;
-      margin-bottom: 3px;
-    }
-
-    .url-full {
-      font-size: 0.78rem;
-      color: var(--text-sub);
-    }
-
-    .url-full a {
-      color: var(--accent-strong);
-      text-decoration: none;
-    }
-
-    .url-full a:hover {
-      text-decoration: underline;
-    }
-
-    .my-url-info {
-      margin-top: 4px;
-      font-size: 0.75rem;
-      color: var(--text-sub);
-    }
-
-    .my-url-info.sent {
-      color: var(--accent-strong);
-    }
-
-    .my-url-info.error {
-      color: var(--danger);
-    }
-
-    footer {
-      margin-top: 10px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(31, 41, 55, 0.9);
-      font-size: 0.75rem;
-      color: #6b7280;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .foot-left {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      font-size: 0.74rem;
-    }
-
-    .dot {
-      width: 4px;
-      height: 4px;
-      border-radius: 999px;
-      background: #4b5563;
-    }
-
-    .foot-right {
-      font-size: 0.74rem;
-      color: #9ca3af;
-    }
-
-    @media (max-width: 800px) {
-      .layout {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
-
-    @media (max-width: 640px) {
-      .page {
-        padding: 18px 10px 22px;
-      }
-
-      .shell {
-        padding: 16px 12px 12px;
-        border-radius: 16px;
-      }
-
-      header {
+        display: flex;
         flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-      }
-
-      h1 {
-        font-size: 1.2rem;
-      }
-
-      .role-buttons {
-        flex-direction: row;
-        width: 100%;
-      }
-
-      .role-buttons button {
-        flex: 1;
+        align-items: center;
         justify-content: center;
-      }
-
-      button {
-        padding: 9px 10px;
-        font-size: 0.8rem;
-      }
-
-      .panel {
-        padding: 10px 10px 8px;
-      }
-
-      .field-row {
-        flex-direction: column;
-      }
-
-      textarea {
-        min-height: 66px;
-      }
-
-      footer {
-        flex-direction: column;
-        align-items: flex-start;
-      }
+        padding: 16px;
     }
-  </style>
+}
+</style>
 </head>
 <body>
-  <div class="page">
-    <div class="shell">
-      <header>
-        <div class="title-wrap">
-          <h1>
-            <span class="badge">P2P</span>
-            URL Swap
-          </h1>
-          <div class="subtitle">
-            サーバーなし・履歴なし。ブラウザ同士を直接つないでURLを一回だけ交換します。
-          </div>
-        </div>
-        <div class="status-pill status-chip warn">
-          <span class="status-dot"></span>
-          <span id="connectionStatus" class="status-text">未接続</span>
-        </div>
-      </header>
 
-      <div class="layout">
-        <!-- 左：ロール＆接続まわり -->
-        <div class="left-col">
-          <!-- 役割選択 -->
-          <section class="panel" id="roleSection">
-            <div class="panel-header">
-              <div class="panel-title">
-                ① ロールを選ぶ
-              </div>
-              <div class="panel-tag">ROLE</div>
-            </div>
-            <div class="panel-sub">
-              2人で同じページを開き、どちらかが<strong>ホスト</strong>、もう一方が<strong>ゲスト</strong>を選びます。
-            </div>
-            <div class="role-buttons">
-              <button id="chooseHostBtn" class="primary">ホストとして開始</button>
-              <button id="chooseGuestBtn" class="secondary">ゲストとして参加</button>
-            </div>
-          </section>
-
-          <!-- ホスト用 -->
-          <section class="panel" id="hostSection" style="display:none;">
-            <div class="panel-header">
-              <div class="panel-title">
-                ホスト
-              </div>
-              <div class="panel-tag">HOST</div>
-            </div>
-            <div class="panel-sub">
-              接続コードを作成してゲストに送り、ゲストから返ってきたコードを貼り付けます。
-            </div>
-
-            <button id="hostStartBtn" class="primary" style="margin-bottom:8px;">
-              接続コード生成
-            </button>
-
-            <div class="field-label">あなたの接続コード（ゲストへ送る）</div>
-            <div class="field-row">
-              <div class="field-main">
-                <textarea id="hostLocalCode" readonly></textarea>
-              </div>
-              <button id="copyHostLocalBtn" class="ghost" type="button">コピー</button>
-            </div>
-
-            <div class="field-label">ゲストから届いたコードを貼る</div>
-            <div class="field-row">
-              <div class="field-main">
-                <textarea id="hostRemoteCode"></textarea>
-              </div>
-            </div>
-            <button id="hostReadGuestCodeBtn" class="secondary" style="margin-top:6px;">
-              ゲストのコードを適用
-            </button>
-          </section>
-
-          <!-- ゲスト用 -->
-          <section class="panel" id="guestSection" style="display:none;">
-            <div class="panel-header">
-              <div class="panel-title">
-                ゲスト
-              </div>
-              <div class="panel-tag">GUEST</div>
-            </div>
-            <div class="panel-sub">
-              ホストからもらった接続コードを貼り付け、返すコードを送り返します。
-            </div>
-
-            <div class="field-label">ホストから受け取った接続コード</div>
-            <div class="field-row">
-              <div class="field-main">
-                <textarea id="guestRemoteCode"></textarea>
-              </div>
-              <button id="copyGuestRemoteBtn" class="ghost" type="button">コピー</button>
-            </div>
-            <button id="guestReadHostCodeBtn" class="secondary" style="margin-top:6px;">
-              コードを読み込んで接続準備
-            </button>
-
-            <div class="field-label" style="margin-top:8px;">あなたの接続コード（ホストへ送る）</div>
-            <div class="field-row">
-              <div class="field-main">
-                <textarea id="guestLocalCode" readonly></textarea>
-              </div>
-              <button id="copyGuestLocalBtn" class="ghost" type="button">コピー</button>
-            </div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-header">
-              <div class="panel-title">接続ログ</div>
-              <div class="panel-tag">STATUS</div>
-            </div>
-            <div id="extraInfo" class="status-detail">
-              ロールを選んで接続コードのやり取りを開始してください。
-            </div>
-          </section>
-        </div>
-
-        <!-- 右：URL交換 -->
-        <div class="right-col">
-          <section class="panel">
-            <div class="panel-header">
-              <div class="panel-title">URLを交換</div>
-              <div class="panel-tag">URL SWAP</div>
-            </div>
-            <div class="panel-sub">
-              接続後、各自1回だけURLを送信します。片側だけ送信した状態では、相手には
-              <code>https://example.com/???</code> のようにドメインだけが表示されます。
-            </div>
-
-            <div class="field-label">あなたのURL（PayPay / SNSなど）</div>
-            <input
-              type="text"
-              id="myUrl"
-              placeholder="例）https://paypay.ne.jp/xxxx や https://twitter.com/xxxxx"
-            />
-
-            <button id="sendUrlBtn" class="primary" style="margin-top:8px;" disabled>
-              URLを確定して送信
-            </button>
-            <div id="myUrlInfo" class="my-url-info"></div>
-
-            <div class="field-label" style="margin-top:10px;">相手のURL</div>
-            <div id="peerUrlDisplay" class="url-display">
-              まだ相手のURLは表示されていません。
-            </div>
-          </section>
-        </div>
-      </div>
-
-      <footer>
-        <div class="foot-left">
-          <span class="dot"></span>
-          <span>P2P / WebRTC / No Server Log</span>
-        </div>
-        <div class="foot-right">
-          © 2025 r_shon All rights reserved.
-        </div>
-      </footer>
+<!-- ★ 最初の選択画面 -->
+<div class="card" id="selectScreen">
+    <div class="title-row">
+        <div class="title-accent">💬</div>
+        <h2>P2P Chat</h2>
     </div>
-  </div>
+    <div class="status-pill">サーバーなし・履歴なし・ブラウザ同士で直結</div>
+    <button onclick="selectHost()">ホストとして開始</button>
+    <button onclick="selectGuest()">ゲストとして参加</button>
+</div>
 
-  <script>
-    const rtcConfig = {
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+<!-- ─────────────── ホスト画面 ─────────────── -->
+<div class="card hidden" id="hostScreen">
+    <div class="title-row">
+        <div class="title-accent">🛰</div>
+        <h2>ホスト</h2>
+    </div>
+    <div class="status-pill">あなたがルームを立てます</div>
+    <div id="status">「接続コード生成」を押して、出てきたコードを相手に送ってください。</div>
+
+    <div class="label">1. 接続コード（Offer）を作成</div>
+    <button id="createOffer">接続コード生成</button>
+    <textarea id="offer" rows="4" placeholder="生成された接続コード（Offer）がここに出ます"></textarea>
+
+    <div style="display:flex; justify-content:space-between;">
+        <button class="small-btn" onclick="copyText('offer')">Offerをコピー</button>
+        <button class="small-btn" onclick="pasteText('hostAnswer')">Answerをペースト</button>
+    </div>
+
+    <div class="label">2. ゲストから届いた Answer を貼る</div>
+    <textarea id="hostAnswer" rows="4" placeholder="ゲストから送られてきたAnswerをここに貼る"></textarea>
+    <button id="applyAnswer">Answerを適用して接続開始</button>
+</div>
+
+<!-- ─────────────── ゲスト画面 ─────────────── -->
+<div class="card hidden" id="guestScreen">
+    <div class="title-row">
+        <div class="title-accent">📡</div>
+        <h2>ゲスト</h2>
+    </div>
+    <div class="status-pill">ホストからコードをもらって接続します</div>
+    <div id="status2">ホストから送られたOfferを貼ってください。</div>
+
+    <div class="label">1. ホストの Offer を貼る</div>
+    <textarea id="answer" rows="4" placeholder="ホストから送られてきたOfferをここに貼る"></textarea>
+
+    <div style="display:flex; justify-content:space-between;">
+        <button class="small-btn" onclick="pasteText('answer')">Offerをペースト</button>
+    </div>
+
+    <div class="label">2. Answer を生成して、ホストに送り返す</div>
+    <button id="setAnswer">Answer生成</button>
+
+    <textarea id="guestAnswerOut" rows="4" placeholder="生成されたAnswerがここに表示されます（これをホストに送る）"></textarea>
+
+    <div style="display:flex; justify-content:space-between;">
+        <button class="small-btn" onclick="copyText('guestAnswerOut')">Answerをコピー</button>
+    </div>
+</div>
+
+<!-- ─────────────── チャット画面 ─────────────── -->
+<div class="card chat-card hidden" id="chatScreen">
+    <div class="title-row">
+        <div class="title-accent">✨</div>
+        <h2>チャット</h2>
+    </div>
+    <div class="status-pill" id="status3">接続中…</div>
+
+    <div id="chat"></div>
+
+    <div id="msgRow">
+        <input id="msg" placeholder="メッセージを入力（Enterで送信 / Shift+Enterで改行）">
+        <button id="send">送信</button>
+    </div>
+
+    <div id="fileRow">
+        <input type="file" id="fileInput" multiple>
+        <button id="sendFile">ファイル送信</button>
+    </div>
+</div>
+
+<!-- フッター -->
+<div class="footer">
+    taiboku_passent all right reserved
+</div>
+
+<script>
+let pc;
+let channel;
+let disconnected = false;
+
+// 受信中のファイル用
+let incomingFileMeta = null;
+let incomingFileChunks = [];
+let incomingReceivedBytes = 0;
+
+const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MBくらいまで
+
+/* ===== DOM取得 ===== */
+const selectScreen   = document.getElementById("selectScreen");
+const hostScreen     = document.getElementById("hostScreen");
+const guestScreen    = document.getElementById("guestScreen");
+const chatScreen     = document.getElementById("chatScreen");
+
+const status1        = document.getElementById("status");
+const status2        = document.getElementById("status2");
+const status3        = document.getElementById("status3");
+
+const offerTextarea        = document.getElementById("offer");
+const hostAnswerTextarea   = document.getElementById("hostAnswer");
+const guestOfferTextarea   = document.getElementById("answer");
+const guestAnswerOutTextarea = document.getElementById("guestAnswerOut");
+
+const createOfferBtn = document.getElementById("createOffer");
+const applyAnswerBtn = document.getElementById("applyAnswer");
+const setAnswerBtn   = document.getElementById("setAnswer");
+
+const chatDiv   = document.getElementById("chat");
+const msgInput  = document.getElementById("msg");
+const sendBtn   = document.getElementById("send");
+
+const fileInput   = document.getElementById("fileInput");
+const sendFileBtn = document.getElementById("sendFile");
+
+/* ─────────────── クリップボード ─────────────── */
+function copyText(id) {
+    const text = document.getElementById(id).value;
+    if (!text) { alert("コピーする内容がありません"); return; }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+            .then(() => alert("コピーしました"))
+            .catch(() => alert("コピーに失敗しました"));
+    } else {
+        const el = document.getElementById(id);
+        el.select();
+        document.execCommand("copy");
+        alert("コピーしました（旧API）");
+    }
+}
+
+async function pasteText(id) {
+    if (!(navigator.clipboard && navigator.clipboard.readText)) {
+        alert("この環境ではペーストAPIが使えません。手動で貼り付けてください。");
+        return;
+    }
+    try {
+        const text = await navigator.clipboard.readText();
+        document.getElementById(id).value = text;
+    } catch (e) {
+        alert("ペーストに失敗しました");
+    }
+}
+
+/* ─────────────── RTC初期化 ─────────────── */
+function initRTC() {
+    pc = new RTCPeerConnection({
+        iceServers: [] // 必要なら STUN サーバーを追加
+    });
+
+    pc.ondatachannel = ev => {
+        channel = ev.channel;
+        setupChannel();
     };
 
-    let pc = null;
-    let dataChannel = null;
-    let isHost = false;
-    let role = null;
-
-    let hasSentMyUrl = false;
-    let hasReceivedPeerUrl = false;
-    let storedMyUrl = "";
-    let storedPeerUrl = "";
-
-    const connectionStatusEl = document.getElementById("connectionStatus");
-    const extraInfoEl = document.getElementById("extraInfo");
-
-    const roleSection = document.getElementById("roleSection");
-    const hostSection = document.getElementById("hostSection");
-    const guestSection = document.getElementById("guestSection");
-
-    const chooseHostBtn = document.getElementById("chooseHostBtn");
-    const chooseGuestBtn = document.getElementById("chooseGuestBtn");
-
-    const hostStartBtn = document.getElementById("hostStartBtn");
-    const hostLocalCodeEl = document.getElementById("hostLocalCode");
-    const hostRemoteCodeEl = document.getElementById("hostRemoteCode");
-    const hostReadGuestCodeBtn = document.getElementById("hostReadGuestCodeBtn");
-    const copyHostLocalBtn = document.getElementById("copyHostLocalBtn");
-
-    const guestRemoteCodeEl = document.getElementById("guestRemoteCode");
-    const guestLocalCodeEl = document.getElementById("guestLocalCode");
-    const guestReadHostCodeBtn = document.getElementById("guestReadHostCodeBtn");
-    const copyGuestRemoteBtn = document.getElementById("copyGuestRemoteBtn");
-    const copyGuestLocalBtn = document.getElementById("copyGuestLocalBtn");
-
-    const sendUrlBtn = document.getElementById("sendUrlBtn");
-    const myUrlInput = document.getElementById("myUrl");
-    const peerUrlDisplay = document.getElementById("peerUrlDisplay");
-    const myUrlInfo = document.getElementById("myUrlInfo");
-
-    function setStatus(text, type = "info") {
-      connectionStatusEl.textContent = text;
-      connectionStatusEl.parentElement.classList.remove("ok", "warn", "err");
-      if (type === "ok") connectionStatusEl.parentElement.classList.add("ok");
-      else if (type === "warn") connectionStatusEl.parentElement.classList.add("warn");
-      else if (type === "err") connectionStatusEl.parentElement.classList.add("err");
-    }
-
-    function logInfo(text) {
-      extraInfoEl.textContent = text;
-    }
-
-    function escapeHtml(str) {
-      return String(str).replace(/[&<>"']/g, function (c) {
-        return {
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#39;",
-        }[c];
-      });
-    }
-
-    function extractFirstUrl(str) {
-      const m = String(str || "").match(/https?:\/\/[^\s]+/);
-      return m ? m[0] : "";
-    }
-
-    function summarizeSite(raw) {
-      const candidate = extractFirstUrl(raw) || String(raw || "");
-      try {
-        const u = new URL(candidate);
-        return u.protocol + "//" + u.host + "/???";
-      } catch {
-        return "（不明なURL形式）";
-      }
-    }
-
-    function showPeerUrlFull() {
-      const original = storedPeerUrl || "";
-      const urlOnly = extractFirstUrl(original) || original;
-
-      const shortSite = summarizeSite(original);
-      const shortEsc = escapeHtml(shortSite);
-      const urlEsc = escapeHtml(urlOnly);
-
-      let html = "";
-      html +=
-        '<div class="url-main"><strong>サイト：</strong>' + shortEsc + "</div>";
-
-      if (urlOnly) {
-        html +=
-          '<div class="url-full">フルURL：<a href="' +
-          urlEsc +
-          '" target="_blank" rel="noopener noreferrer">' +
-          urlEsc +
-          "</a></div>";
-      } else {
-        html += '<div class="url-full">フルURL： (URLが見つかりませんでした)</div>';
-      }
-
-      peerUrlDisplay.innerHTML = html;
-    }
-
-    function showPeerUrlSummaryOnly() {
-      const original = storedPeerUrl || "";
-      const shortSite = summarizeSite(original);
-      const shortEsc = escapeHtml(shortSite);
-
-      let html = "";
-      html +=
-        '<div class="url-main"><strong>サイト：</strong>' + shortEsc + "</div>";
-      html +=
-        '<div class="url-full">フルURLは、あなたがURLを送信すると表示されます。</div>';
-
-      peerUrlDisplay.innerHTML = html;
-    }
-
-    function showPeerUrlIfBothReady() {
-      if (!hasSentMyUrl || !hasReceivedPeerUrl) return;
-      showPeerUrlFull();
-    }
-
-    function createPeerConnection() {
-      if (pc) {
-        pc.close();
-        pc = null;
-      }
-
-      pc = new RTCPeerConnection(rtcConfig);
-
-      pc.onicecandidate = (event) => {
-        if (!event.candidate && pc.localDescription) {
-          const json = JSON.stringify(pc.localDescription);
-          const encoded = btoa(json);
-          if (role === "host") {
-            hostLocalCodeEl.value = encoded;
-          } else if (role === "guest") {
-            guestLocalCodeEl.value = encoded;
-          }
-          logInfo("接続コードが作成されました。この文字列を相手に送ってください。");
-        }
-      };
-
-      pc.oniceconnectionstatechange = () => {
-        const state = pc.iceConnectionState;
-        if (state === "connected" || state === "completed") {
-          setStatus("接続完了", "ok");
-          sendUrlBtn.disabled = false;
-          logInfo("接続完了。お互いURLを入力して「URLを確定して送信」を押してください。");
-        } else if (state === "disconnected" || state === "failed") {
-          setStatus("切断 / 失敗", "err");
-          sendUrlBtn.disabled = true;
-          logInfo("接続が切断されました。ページをリロードしてやり直してください。");
-        } else if (state === "checking" || state === "connecting") {
-          setStatus("接続中…", "warn");
-        } else {
-          setStatus("状態：" + state, "warn");
-        }
-      };
-
-      pc.ondatachannel = (event) => {
-        if (!isHost) {
-          setupDataChannel(event.channel);
-        }
-      };
-    }
-
-    function setupDataChannel(channel) {
-      dataChannel = channel;
-
-      channel.onopen = () => {
-        setStatus("接続完了", "ok");
-        sendUrlBtn.disabled = false;
-        logInfo("接続完了。URLを一度だけ送信できます。");
-      };
-
-      channel.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === "urlReady") {
-            storedPeerUrl = msg.value || "";
-            hasReceivedPeerUrl = true;
-
-            if (hasSentMyUrl) {
-              showPeerUrlIfBothReady();
-            } else {
-              showPeerUrlSummaryOnly();
+    pc.onconnectionstatechange = () => {
+        if (!pc) return;
+        const st = pc.connectionState;
+        if (["disconnected", "failed", "closed"].includes(st)) {
+            if (channel && (channel.readyState === "open" || channel.readyState === "closing")) {
+                handleDisconnect();
             }
-          }
-        } catch (e) {
-          console.error("受信メッセージ解析エラー:", e);
         }
-      };
+    };
+}
 
-      channel.onerror = (err) => {
-        console.error("DataChannel error:", err);
-        setStatus("データチャネルでエラーが発生しました", "err");
-      };
+/* ─────────────── 接続切れ処理 ─────────────── */
+function handleDisconnect() {
+    if (disconnected) return;
+    disconnected = true;
 
-      channel.onclose = () => {
-        setStatus("切断されました", "warn");
-        sendUrlBtn.disabled = true;
-      };
+    if (!chatScreen.classList.contains("hidden")) {
+        status3.textContent = "接続が切れました";
     }
 
-    async function copyFrom(el) {
-      const text = el.value || "";
-      if (!text) {
-        alert("コピーする文字列がありません。");
-        return;
-      }
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(text);
-        } else {
-          el.focus();
-          el.select();
-          document.execCommand("copy");
+    setTimeout(() => {
+        resetApp();
+    }, 1200);
+}
+
+function resetApp() {
+    if (channel) {
+        try { channel.close(); } catch(e) {}
+        channel = null;
+    }
+    if (pc) {
+        try { pc.close(); } catch(e) {}
+        pc = null;
+    }
+    disconnected = false;
+
+    incomingFileMeta = null;
+    incomingFileChunks = [];
+    incomingReceivedBytes = 0;
+
+    hostScreen.classList.add("hidden");
+    guestScreen.classList.add("hidden");
+    chatScreen.classList.add("hidden");
+    selectScreen.classList.remove("hidden");
+
+    offerTextarea.value = "";
+    hostAnswerTextarea.value = "";
+    guestOfferTextarea.value = "";
+    guestAnswerOutTextarea.value = "";
+    chatDiv.innerHTML = "";
+    msgInput.value = "";
+    fileInput.value = "";
+
+    status1.textContent = "「接続コード生成」を押して、出てきたコードを相手に送ってください。";
+    status2.textContent = "ホストから送られたOfferを貼ってください。";
+    status3.textContent = "接続中…";
+}
+
+/* ─────────────── 画面切替 ─────────────── */
+function selectHost() {
+    resetApp();
+    initRTC();
+    selectScreen.classList.add("hidden");
+    hostScreen.classList.remove("hidden");
+}
+function selectGuest() {
+    resetApp();
+    initRTC();
+    selectScreen.classList.add("hidden");
+    guestScreen.classList.remove("hidden");
+}
+
+/* ─────────────── ホスト：Offer生成 ─────────────── */
+createOfferBtn.onclick = async () => {
+    channel = pc.createDataChannel("chat");
+    setupChannel();
+
+    status1.textContent = "接続コード生成中…";
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    pc.onicecandidate = e => {
+        if (!e.candidate) {
+            offerTextarea.value = JSON.stringify(pc.localDescription);
+            status1.textContent = "Offerをゲストに送ってください。";
         }
-        alert("コピーしました。");
-      } catch (e) {
-        console.error(e);
-        alert("コピーに失敗しました。手動で選択してコピーしてください。");
-      }
+    };
+};
+
+/* ─────────────── ホスト：Answer受信 ─────────────── */
+applyAnswerBtn.onclick = async () => {
+    const text = hostAnswerTextarea.value.trim();
+    if (!text) { alert("Answerが空です"); return; }
+
+    try {
+        const ans = JSON.parse(text);
+        await pc.setRemoteDescription(ans);
+        status1.textContent = "Answerを適用しました。接続を待機中…";
+    } catch (e) {
+        alert("Answerの形式が不正です");
+    }
+};
+
+/* ─────────────── ゲスト：Offer→Answer生成 ─────────────── */
+setAnswerBtn.onclick = async () => {
+    const text = guestOfferTextarea.value.trim();
+    if (!text) { alert("Offerが空です"); return; }
+
+    try {
+        const remoteOffer = JSON.parse(text);
+        await pc.setRemoteDescription(remoteOffer);
+    } catch (e) {
+        alert("Offerの形式が不正です");
+        return;
     }
 
-    copyHostLocalBtn.addEventListener("click", () => copyFrom(hostLocalCodeEl));
-    copyGuestRemoteBtn.addEventListener("click", () => copyFrom(guestRemoteCodeEl));
-    copyGuestLocalBtn.addEventListener("click", () => copyFrom(guestLocalCodeEl));
+    status2.textContent = "Answer生成中…";
 
-    chooseHostBtn.addEventListener("click", () => {
-      role = "host";
-      isHost = true;
-      roleSection.style.display = "none";
-      hostSection.style.display = "block";
-      guestSection.style.display = "none";
-      logInfo("ホストを選びました。「接続コード生成」を押してコードを作成してください。");
-    });
+    const ans = await pc.createAnswer();
+    await pc.setLocalDescription(ans);
 
-    chooseGuestBtn.addEventListener("click", () => {
-      role = "guest";
-      isHost = false;
-      roleSection.style.display = "none";
-      hostSection.style.display = "none";
-      guestSection.style.display = "block";
-      logInfo("ゲストを選びました。ホストから送られてきたコードを貼り付けてください。");
-    });
-
-    hostStartBtn.addEventListener("click", async () => {
-      try {
-        if (role !== "host") return;
-        setStatus("ホスト準備中…", "warn");
-        logInfo("少し待つと接続コードが生成されます。");
-
-        createPeerConnection();
-        const channel = pc.createDataChannel("urlswap");
-        setupDataChannel(channel);
-
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-      } catch (e) {
-        console.error(e);
-        setStatus("ホスト初期化エラー", "err");
-        logInfo(String(e));
-      }
-    });
-
-    guestReadHostCodeBtn.addEventListener("click", async () => {
-      try {
-        if (role !== "guest") return;
-
-        const encoded = guestRemoteCodeEl.value.trim();
-        if (!encoded) {
-          alert("ホストから受け取ったコードを貼り付けてください。");
-          return;
+    pc.onicecandidate = e => {
+        if (!e.candidate) {
+            guestAnswerOutTextarea.value = JSON.stringify(pc.localDescription);
+            status2.textContent = "生成されたAnswerをホストに渡してください。";
         }
+    };
+};
 
-        if (pc && pc.signalingState !== "stable") {
-          logInfo("すでにホストのコードを適用済みです。再度読み込む必要はありません。");
-          return;
+/* ─────────────── DataChannel / チャット処理 ─────────────── */
+function setupChannel() {
+    incomingFileMeta = null;
+    incomingFileChunks = [];
+    incomingReceivedBytes = 0;
+
+    channel.binaryType = "arraybuffer";
+
+    channel.onopen = () => {
+        hostScreen.classList.add("hidden");
+        guestScreen.classList.add("hidden");
+        chatScreen.classList.remove("hidden");
+        status3.textContent = "接続完了 ✔";
+    };
+
+    channel.onmessage = handleDataMessage;
+    channel.onclose   = () => handleDisconnect();
+}
+
+/* 受信データ処理 */
+function handleDataMessage(e) {
+    const data = e.data;
+
+    if (typeof data === "string") {
+        try {
+            const obj = JSON.parse(data);
+            if (obj && obj.kind === "file-meta") {
+                incomingFileMeta = obj;
+                incomingFileChunks = [];
+                incomingReceivedBytes = 0;
+                addSystemMsg(`ファイル受信中: ${obj.name} (${Math.round(obj.size/1024)}KB)`);
+                return;
+            }
+        } catch {
+            // 普通のテキスト
         }
-
-        setStatus("ホスト情報を適用中…", "warn");
-        logInfo("接続コードを解析しています…");
-
-        createPeerConnection();
-
-        const json = atob(encoded);
-        const desc = JSON.parse(json);
-        await pc.setRemoteDescription(new RTCSessionDescription(desc));
-
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-
-        logInfo("数秒後にあなたの接続コードが表示されます。それをホストに送ってください。");
-      } catch (e) {
-        console.error(e);
-        setStatus("ホストコード読み込みエラー", "err");
-        logInfo(String(e));
-      }
-    });
-
-    hostReadGuestCodeBtn.addEventListener("click", async () => {
-      try {
-        if (role !== "host") return;
-
-        const encoded = hostRemoteCodeEl.value.trim();
-        if (!encoded) {
-          alert("ゲストから届いたコードを貼り付けてください。");
-          return;
-        }
-        if (!pc) {
-          alert("先に「接続コード生成」を押してください。");
-          return;
-        }
-
-        if (pc.signalingState === "stable") {
-          setStatus("接続完了", "ok");
-          logInfo("すでにゲストのコードを適用済みです。");
-          return;
-        }
-
-        setStatus("ゲスト情報を適用中…", "warn");
-        logInfo("接続を確立中です。数秒お待ちください。");
-
-        const json = atob(encoded);
-        const desc = JSON.parse(json);
-        await pc.setRemoteDescription(new RTCSessionDescription(desc));
-      } catch (e) {
-        console.error(e);
-        if (e && e.name === "InvalidStateError") {
-          setStatus("接続完了", "ok");
-          logInfo("すでに接続済みです。ゲストのコードを再度読み込む必要はありません。");
-        } else {
-          setStatus("ゲストコード読み込みエラー", "err");
-          logInfo(String(e));
-        }
-      }
-    });
-
-    sendUrlBtn.addEventListener("click", () => {
-      if (!dataChannel || dataChannel.readyState !== "open") {
-        alert("まだ接続が完了していません。");
+        addMsg(data, "other");
         return;
-      }
+    }
 
-      if (hasSentMyUrl) {
-        alert("この接続ではすでにURLを送信済みです。");
+    if (!incomingFileMeta) {
+        addSystemMsg("不明なファイルデータを受信しました");
         return;
-      }
+    }
 
-      const url = myUrlInput.value.trim();
+    const chunk = data;
+    const len = (chunk && (chunk.byteLength ?? chunk.size)) || 0;
 
-      if (!url) {
-        const yes = confirm("URLが空です。このまま空のURLを送りますか？");
-        if (!yes) return;
-      }
+    incomingFileChunks.push(chunk);
+    incomingReceivedBytes += len;
 
-      storedMyUrl = url;
-      hasSentMyUrl = true;
+    if (incomingReceivedBytes >= incomingFileMeta.size) {
+        const blob = new Blob(incomingFileChunks, {
+            type: incomingFileMeta.type || "application/octet-stream"
+        });
+        const url = URL.createObjectURL(blob);
+        addFileMsg(url, incomingFileMeta, "other");
 
-      const msg = JSON.stringify({ type: "urlReady", value: url });
-      dataChannel.send(msg);
+        incomingFileMeta = null;
+        incomingFileChunks = [];
+        incomingReceivedBytes = 0;
+    }
+}
 
-      myUrlInput.disabled = true;
-      sendUrlBtn.disabled = true;
-      myUrlInfo.textContent =
-        "あなたのURLを送信しました。相手のURLは上の欄に表示されます。";
-      myUrlInfo.classList.remove("error");
-      myUrlInfo.classList.add("sent");
+/* テキストメッセージ送信 */
+sendBtn.onclick = () => {
+    const text = msgInput.value;
+    if (!text || !channel || channel.readyState !== "open") return;
+    channel.send(text);
+    addMsg(text, "me");
+    msgInput.value = "";
+};
 
-      showPeerUrlIfBothReady();
+/* ファイル送信（複数対応＋チャンク分割） */
+sendFileBtn.onclick = async () => {
+    if (!channel || channel.readyState !== "open") {
+        alert("接続されていません");
+        return;
+    }
+    const files = Array.from(fileInput.files || []);
+    if (!files.length) {
+        alert("ファイルを選択してください");
+        return;
+    }
+
+    for (const file of files) {
+        await sendOneFile(file);
+    }
+    fileInput.value = "";
+};
+
+function sendOneFile(file) {
+    return new Promise((resolve) => {
+        if (file.size > MAX_FILE_SIZE) {
+            alert(`「${file.name}」が大きすぎます（最大 約${Math.round(MAX_FILE_SIZE/1024/1024)}MBまで）。`);
+            return resolve();
+        }
+
+        const meta = {
+            kind: "file-meta",
+            name: file.name,
+            type: file.type,
+            size: file.size
+        };
+
+        channel.send(JSON.stringify(meta));
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const buffer = reader.result;
+            const chunkSize = 16 * 1024; // 16KBずつ
+
+            for (let offset = 0; offset < buffer.byteLength; offset += chunkSize) {
+                const slice = buffer.slice(offset, offset + chunkSize);
+                channel.send(slice);
+            }
+
+            const blob = new Blob([buffer], {
+                type: file.type || "application/octet-stream"
+            });
+            const url = URL.createObjectURL(blob);
+            addFileMsg(url, meta, "me");
+
+            resolve();
+        };
+        reader.onerror = () => {
+            alert(`「${file.name}」の読み込みに失敗しました`);
+            resolve();
+        };
+        reader.readAsArrayBuffer(file);
     });
-  </script>
+}
+
+/* Enterで送信（Shift+Enterで改行） */
+msgInput.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendBtn.click();
+    }
+});
+
+/* 表示系 */
+function addMsg(text, type) {
+    const div = document.createElement("div");
+    div.className = "msg " + type;
+    chatDiv.appendChild(div);
+    div.textContent = text;
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+}
+
+function addSystemMsg(text) {
+    const div = document.createElement("div");
+    div.className = "msg system";
+    div.textContent = text;
+    chatDiv.appendChild(div);
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+}
+
+function addFileMsg(url, meta, type) {
+    const div = document.createElement("div");
+    div.className = "msg " + type;
+
+    const name = document.createElement("div");
+    name.textContent = meta.name;
+    name.style.fontWeight = "600";
+    name.style.fontSize = "12px";
+    div.appendChild(name);
+
+    const lowerName = (meta.name || "").toLowerCase();
+    const mime = meta.type || "";
+
+    // 画像プレビュー
+    if (mime.startsWith("image/")) {
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = meta.name;
+        div.appendChild(img);
+
+    // ★ 動画プレビュー（mp4 / mov / video/*）
+    } else if (
+        mime.startsWith("video/") ||
+        lowerName.endsWith(".mp4") ||
+        lowerName.endsWith(".mov")
+    ) {
+        const video = document.createElement("video");
+        video.src = url;
+        video.controls = true;
+        video.playsInline = true;
+        video.style.maxHeight = "260px";
+        div.appendChild(video);
+    }
+
+    // ダウンロードリンクは全ファイル共通で付ける
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = meta.name;
+    a.textContent = "ダウンロード";
+    a.className = "file-link";
+    div.appendChild(a);
+
+    chatDiv.appendChild(div);
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+}
+
+/* グローバルから使う関数（ボタンのonclick用） */
+function selectHost() {
+    resetApp();
+    initRTC();
+    selectScreen.classList.add("hidden");
+    hostScreen.classList.remove("hidden");
+}
+function selectGuest() {
+    resetApp();
+    initRTC();
+    selectScreen.classList.add("hidden");
+    guestScreen.classList.remove("hidden");
+}
+</script>
+
 </body>
 </html>
