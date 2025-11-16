@@ -206,6 +206,7 @@ input::placeholder {
     max-width: 100%;
     border-radius: 10px;
     margin-top: 4px;
+    display: block;
 }
 
 /* ファイルリンク */
@@ -725,8 +726,8 @@ msgInput.addEventListener("keydown", e => {
 function addMsg(text, type) {
     const div = document.createElement("div");
     div.className = "msg " + type;
-    chatDiv.appendChild(div);
     div.textContent = text;
+    chatDiv.appendChild(div);
     chatDiv.scrollTop = chatDiv.scrollHeight;
 }
 
@@ -742,37 +743,37 @@ function addFileMsg(url, meta, type) {
     const div = document.createElement("div");
     div.className = "msg " + type;
 
-    const name = document.createElement("div");
-    name.textContent = meta.name;
-    name.style.fontWeight = "600";
-    name.style.fontSize = "12px";
-    div.appendChild(name);
+    const nameEl = document.createElement("div");
+    nameEl.textContent = meta.name;
+    nameEl.style.fontWeight = "600";
+    nameEl.style.fontSize = "12px";
+    div.appendChild(nameEl);
 
     const lowerName = (meta.name || "").toLowerCase();
     const mime = meta.type || "";
 
-    // 画像プレビュー
-    if (mime.startsWith("image/")) {
+    const isImage = mime.startsWith("image/");
+    const isVideo =
+        mime.startsWith("video/") ||
+        lowerName.endsWith(".mp4") ||
+        lowerName.endsWith(".mov") ||
+        lowerName.endsWith(".webm");
+
+    if (isImage) {
         const img = document.createElement("img");
         img.src = url;
         img.alt = meta.name;
         div.appendChild(img);
-
-    // ★ 動画プレビュー（mp4 / mov / video/*）
-    } else if (
-        mime.startsWith("video/") ||
-        lowerName.endsWith(".mp4") ||
-        lowerName.endsWith(".mov")
-    ) {
+    } else if (isVideo) {
         const video = document.createElement("video");
         video.src = url;
         video.controls = true;
         video.playsInline = true;
+        video.style.width = "100%";
         video.style.maxHeight = "260px";
         div.appendChild(video);
     }
 
-    // ダウンロードリンクは全ファイル共通で付ける
     const a = document.createElement("a");
     a.href = url;
     a.download = meta.name;
